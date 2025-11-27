@@ -3,7 +3,6 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 import numpy as np
 from PIL import Image
-import json
 
 # ---- PAGE CONFIG ----
 st.set_page_config(
@@ -54,12 +53,18 @@ st.write(
 # ---- LOAD MODEL ----
 @st.cache_resource
 def load_tea_model():
-    model = load_model("tea_leaf_model.h5")  # replace with your saved model path
-    # Load the class mapping saved from Colab
-    with open("class_indices.json", "r") as f:
-        class_indices = json.load(f)
-    # Invert mapping: index -> class name
-    inv_map = {v: k for k, v in class_indices.items()}
+    model = load_model("tea_leaf_model.h5")  # your saved model
+    # Hardcode the class mapping exactly as learned during training
+    inv_map = {
+        0: "Anthracnose",
+        1: "algal leaf",
+        2: "bird eye spot",
+        3: "brown blight",
+        4: "gray light",
+        5: "healthy",
+        6: "red leaf spot",
+        7: "white spot"
+    }
     return model, inv_map
 
 model, inv_map = load_tea_model()
