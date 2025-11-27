@@ -3,6 +3,7 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 import numpy as np
 from PIL import Image
+import json
 
 # ---- PAGE CONFIG ----
 st.set_page_config(
@@ -21,7 +22,7 @@ st.markdown(
         color: #333333;
         font-family: 'Helvetica', sans-serif;
     }
-    /* Make Browse File button white with dark text */
+    /* White Browse File button */
     div.stFileUploader > div > label > div[data-baseweb="file-input"] {
         background-color: white;
         color: #333;
@@ -53,22 +54,16 @@ st.write(
 # ---- LOAD MODEL ----
 @st.cache_resource
 def load_tea_model():
-    model = load_model("tea_leaf_model.h5")  # replace with your saved .h5 path
-    # 8 classes from your dataset
-    inv_map = {
-        0: "Anthracnose",
-        1: "white spot",
-        2: "healthy",
-        3: "bird eye spot",
-        4: "brown blight",
-        5: "gray light",
-        6: "algal leaf",
-        7: "red leaf spot"
-    }
+    model = load_model("tea_leaf_model.h5")  # replace with your saved model path
+    # Load the class mapping saved from Colab
+    with open("class_indices.json", "r") as f:
+        class_indices = json.load(f)
+    # Invert mapping: index -> class name
+    inv_map = {v: k for k, v in class_indices.items()}
     return model, inv_map
 
 model, inv_map = load_tea_model()
-IMG_SIZE = (224, 224)  # match your MobileNetV2 input
+IMG_SIZE = (224, 224)  # match your model input size
 
 # ---- IMAGE UPLOAD ----
 uploaded_file = st.file_uploader(
@@ -97,7 +92,7 @@ if uploaded_file:
     st.markdown(f"### 🍀 Predicted Disease: **{predicted_label}**")
     st.markdown(f"**Confidence:** {confidence:.2f}%")
 
-    # Optional: Show top-3 predictions with progress bars
+    # Show top-3 predictions
     st.markdown("#### 🔹 Top 3 Predictions:")
     top3_idx = pred_probs.argsort()[-3:][::-1]
     for i in top3_idx:
