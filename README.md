@@ -35,3 +35,6 @@
 - **MobileNetV2** – pre-trained model backbone  
 
 ---
+
+## Dataset Link
+https://www.kaggle.com/datasets/shashwatwork/identifying-disease-in-tea-leafs
