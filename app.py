@@ -21,32 +21,54 @@ st.markdown(
         color: #333333;
         font-family: 'Helvetica', sans-serif;
     }
+    /* Make Browse File button white with dark text */
+    div.stFileUploader > div > label > div[data-baseweb="file-input"] {
+        background-color: white;
+        color: #333;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-weight: bold;
+        border: 1px solid #ccc;
+    }
     .stButton>button {
         background-color: #26a69a;
         color: white;
         font-size: 16px;
         border-radius: 8px;
     }
-    .stFileUploader>div>div>label {
-        font-weight: bold;
-        color: #00796b;
+    .stProgress > div > div > div > div {
+        background-color: #26a69a;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
+# ---- APP TITLE ----
 st.title("🍃 Tea Leaf Disease Classifier")
 st.write(
-    "Upload an image of a tea leaf and the model will predict which disease (if any) it has."
+    "Upload a tea leaf image, and the model will predict the disease along with confidence."
 )
 
 # ---- LOAD MODEL ----
 @st.cache_resource
 def load_tea_model():
-    return load_model("tea_leaf_model.h5")  # replace with your saved .h5 path
+    model = load_model("tea_leaf_model.h5")  # replace with your saved .h5 path
+    # 8 classes from your dataset
+    inv_map = {
+        0: "Anthracnose",
+        1: "white spot",
+        2: "healthy",
+        3: "bird eye spot",
+        4: "brown blight",
+        5: "gray light",
+        6: "algal leaf",
+        7: "red leaf spot"
+    }
+    return model, inv_map
 
-model = load_tea_model()
+model, inv_map = load_tea_model()
+IMG_SIZE = (224, 224)  # match your MobileNetV2 input
 
 # ---- IMAGE UPLOAD ----
 uploaded_file = st.file_uploader(
@@ -55,38 +77,31 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file:
-    # Load image
+    # Load and display image
     img = Image.open(uploaded_file).convert("RGB")
     st.image(img, caption="Uploaded Image", use_column_width=True)
 
     # Preprocess image
-    IMG_SIZE = (224, 224)  # match your model input
     img_resized = img.resize(IMG_SIZE)
     img_array = image.img_to_array(img_resized)
     img_array = np.expand_dims(img_array, axis=0)
     img_array = img_array / 255.0  # normalize
 
-    # Prediction
+    # Predict
     pred_probs = model.predict(img_array)[0]
     pred_idx = np.argmax(pred_probs)
-
-    # Class labels (must match your training class_indices)
-    class_labels = sorted([
-        'Algal leaf spot', 'Bird’s eye spot', 'Grey blight', 'Red rust', 'Tea mosquito bug'
-    ])
-    predicted_label = class_labels[pred_idx]
+    predicted_label = inv_map[pred_idx]
     confidence = pred_probs[pred_idx] * 100
 
     # Display prediction
-    st.markdown(
-        f"### 🍀 Predicted Disease: **{predicted_label}**"
-    )
-    st.markdown(
-        f"**Confidence:** {confidence:.2f}%"
-    )
+    st.markdown(f"### 🍀 Predicted Disease: **{predicted_label}**")
+    st.markdown(f"**Confidence:** {confidence:.2f}%")
 
-    # Optional: show top 3 predictions
-    top3_idx = pred_probs.argsort()[-3:][::-1]
+    # Optional: Show top-3 predictions with progress bars
     st.markdown("#### 🔹 Top 3 Predictions:")
+    top3_idx = pred_probs.argsort()[-3:][::-1]
     for i in top3_idx:
-        st.write(f"{class_labels[i]}: {pred_probs[i]*100:.2f}%")
+        label = inv_map[i]
+        prob = pred_probs[i] * 100
+        st.write(f"{label}: {prob:.2f}%")
+        st.progress(int(prob))
